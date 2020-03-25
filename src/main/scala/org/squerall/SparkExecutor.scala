@@ -94,6 +94,14 @@ class SparkExecutor(sparkURI: String, mappingsFile: String) extends QueryExecuto
                     import collection.JavaConversions._
                     val rdf = new NTtoDF()
                     df = rdf.options(options).read(sourcePath, sparkURI).toDF()
+                case "json" => // TODO JSON support
+                    var schemaPath = options.get("json.schema.path")
+                    if (schemaPath.isEmpty)
+                        throw new IllegalArgumentException("No JSON schema defined! Please add the path to the JSON " + 
+                            "Schema file to the config via option 'json.schema.path'!")
+                    import org.zalando.spark.jsonschema.SchemaConverter
+                    val schema = SchemaConverter.convert(schemaPath.get)
+                    df = spark.read.schema(schema).json(sourcePath)
                 case _ =>
             }
 
