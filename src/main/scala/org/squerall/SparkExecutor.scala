@@ -72,6 +72,7 @@ class SparkExecutor(sparkURI: String, mappingsFile: String) extends QueryExecuto
             }
 
             logger.info("sourceType: " + sourceType)
+            logger.info("say hi to fesu!")
 
             var df : DataFrame = null
             sourceType match {
@@ -95,12 +96,15 @@ class SparkExecutor(sparkURI: String, mappingsFile: String) extends QueryExecuto
                     val rdf = new NTtoDF()
                     df = rdf.options(options).read(sourcePath, sparkURI).toDF()
                 case "json" => // TODO JSON support
-                    var schemaPath = options.get("json.schema.path")
-                    if (schemaPath.isEmpty)
-                        throw new IllegalArgumentException("No JSON schema defined! Please add the path to the JSON " + 
-                            "Schema file to the config via option 'json.schema.path'!")
+                    logger.info("Detected JSON")
                     import org.zalando.spark.jsonschema.SchemaConverter
-                    val schema = SchemaConverter.convert(schemaPath.get)
+                    import scala.io.Source
+                    var schemaPath: String = options("json.schema.path")
+                    if (schemaPath.isEmpty)
+                    	throw new IllegalArgumentException("No JSON schema defined! Please add the path to the JSON " + 
+                    			"Schema file to the config via option 'json.schema.path'!")
+                    val fileContents = Source.fromFile(schemaPath).getLines.mkString
+                    val schema = SchemaConverter.convertContent(fileContents)
                     df = spark.read.schema(schema).json(sourcePath)
                 case _ =>
             }
